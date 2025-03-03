@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech Recognition</title>
+  <style>
+    /* Layout a due colonne */
+    .container {
+      display: flex;
+      justify-content: space-between;
+      margin: 20px;
+    }
+    /* Finestra di riconoscimento vocale */
+    .recognition-box {
+      width: 45%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      height: 350px;
+      overflow-y: scroll;
+      font-family: Arial, sans-serif;
+    }
+    /* Finestra con menu */
+    .window {
+      width: 45%;
+      height: 300px;
+      border: 1px solid #ccc;
+      background-color: white;
+      position: relative;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      font-family: Arial, sans-serif;
+    }
+    .window-header {
+      background-color: #333;
+      color: white;
+      padding: 10px;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .menu {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .menu-item {
+      padding: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background-color 0.3s ease;
+    }
+    .menu-item:hover,
+    .menu-item.selected {
+      background-color: #555;
+      color: #fff;
+    }
+    .window-content {
+      padding: 20px;
+      height: calc(100% - 40px);
+      overflow: auto;
+    }
+    /* Stile per il pulsante di toggle */
+    #toggleButton {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    #toggleButton.off {
+      background-color: #f44336;
+    }
+  </style>
+</head>
+<body>
+<h2>Demo interazione menu mediante Speech Recognition</h2>
+<div class="container">
+  <!-- Sezione per il riconoscimento vocale -->
+  <div class="recognition-box">
+    <h1>Riconoscimento vocale</h1>
+    <p>Puoi anche premere il pulsante "m" sulla tastiera per avviare/fermare il riconoscimento</p>
+    <button id="toggleButton" class="off" onclick="toggleListening()">Attiva Riconoscimento</button>
+    <div id="output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; height: 100px; overflow-y: scroll;"></div>
+  </div>
+
+  <!-- Finestra con il menu -->
+  <div id="window" class="window">
+    <div class="window-header">
+      <div class="menu">
+        <ul>
+          <li class="menu-item" onclick="showDialog('File')" id="file-menu">File</li>
+          <li class="menu-item" onclick="alert('Hai cliccato su Visualizza')" id="visualizza-menu">Visualizza</li>
+          <li class="menu-item" onclick="alert('Hai cliccato su Modifica')" id="modifica-menu">Modifica</li>
+          <li class="menu-item" onclick="alert('Hai cliccato su Strumenti')" id="strumenti-menu">Strumenti</li>
+          <li class="menu-item" onclick="alert('Hai cliccato su Opzioni')" id="opzioni-menu">Opzioni</li>
+        </ul>
+      </div>
+    </div>
+    <div class="window-content">
+      <p>Contenuto interattivo della finestra</p>
+    </div>
+  </div>
+</div>
+
+<div>
+  Le keyword utilizzabili nel riconoscimento vocale sono le seguenti:
+  <ul>
+    <li>Seleziona (nome elemento) --> seleziona l'elemento</li>
+    <li>Clicca --> simula il click sull'elemento attualmente selezionato</li>
+    <li>Annulla --> annulla la selezione dell'elemento attualmente selezionato</li>
+  </ul>
+</div>
+
+<script>
+  // Funzioni per il riconoscimento vocale
+  let recognition;
+  let isListening = false;
+
+  // Inizializza il riconoscimento vocale
+  function initRecognition() {
+    if ('webkitSpeechRecognition' in window) {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'it-IT';
+
+      recognition.onresult = function(event) {
+        let transcript = event.results[event.resultIndex][0].transcript;
+        updateOutput(transcript);
+        processVoiceCommand(transcript);
+      };
+
+      recognition.onerror = function(event) {
+        console.error('Errore riconoscimento vocale:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          alert('Accesso al microfono negato. Controlla le impostazioni del browser.');
+        }
+      };
+
+      recognition.onend = function() {
+        isListening = false;
+        updateButton();
+      };
+    } else {
+      alert("Il riconoscimento vocale non è supportato dal tuo browser.");
+    }
+  }
+
+  function toggleListening() {
+    if (isListening) {
+      recognition.stop();
+      isListening = false;
+    } else {
+      if (!recognition) {
+        initRecognition();
+      }
+      recognition.start();
+      isListening = true;
+    }
+    updateButton();
+  }
+
+  // Aggiorna l'output e svuota il campo dopo 2 secondi
+  function updateOutput(text) {
+    const outputDiv = document.getElementById('output');
+    outputDiv.textContent = text;
+    setTimeout(() => {
+      outputDiv.textContent = '';
+    }, 2000);
+  }
+
+  function updateButton() {
+    const button = document.getElementById('toggleButton');
+    if (isListening) {
+      button.textContent = 'Ferma Riconoscimento';
+      button.classList.remove('off');
+    } else {
+      button.textContent = 'Attiva Riconoscimento';
+      button.classList.add('off');
+    }
+  }
+
+  // Gestisce i comandi vocali
+  function processVoiceCommand(command) {
+    command = command.toLowerCase();
+    if (command.includes("seleziona")) {
+      const selection = command.split("seleziona ")[1].trim();
+      highlightMenuItem(selection);
+    } else if (command === "annulla") {
+      clearSelection();
+    } else if (command === "clicca") {
+      clickSelectedMenuItem();
+    }
+  }
+
+  // Evidenzia l'elemento del menu, deselezionando eventuali selezioni precedenti
+  function highlightMenuItem(menu) {
+    // Lista dei menu validi
+    const validMenus = ['file', 'visualizza', 'modifica', 'strumenti', 'opzioni'];
+    if (validMenus.includes(menu)) {
+      clearSelection(); // Rimuove la selezione corrente
+      const menuItem = document.getElementById(`${menu}-menu`);
+      if (menuItem) {
+        menuItem.classList.add('selected');
+      }
+    }
+  }
+
+  function clearSelection() {
+    const selectedItems = document.querySelectorAll('.menu-item.selected');
+    selectedItems.forEach(item => item.classList.remove('selected'));
+  }
+
+  function clickSelectedMenuItem() {
+    const selectedItem = document.querySelector('.menu-item.selected');
+    if (selectedItem) {
+      selectedItem.click();
+    }
+  }
+
+  function showDialog(menu) {
+    if (menu === 'File') {
+      alert("Hai selezionato il menu File");
+    }
+  }
+
+  // Listener per il tasto "m" per avviare/fermare il riconoscimento vocale
+  window.addEventListener('keydown', function(event) {
+    if (event.key === 'm' || event.key === 'M') {
+      toggleListening();
+    }
+  });
+
+  window.onload = initRecognition;
+</script>
+
+</body>
+</html>

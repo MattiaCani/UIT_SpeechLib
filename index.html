@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riconoscimento vocale con Toggle</title>
+    <style>
+        #toggleButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        #toggleButton.off {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+<h1>Riconoscimento vocale</h1>
+
+<!-- Bottone Toggle per avviare e fermare il riconoscimento -->
+<button id="toggleButton" class="off" onclick="toggleListening()">Attiva Riconoscimento</button>
+
+<div id="output" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; width: 300px; height: 100px; overflow-y: scroll;"></div>
+
+<script>
+    let recognition;
+    let isListening = false;
+
+    // Inizializza il riconoscimento vocale
+    function initRecognition() {
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;  // Disabilita il riconoscimento continuo
+            recognition.interimResults = false;  // Mostra solo i risultati definitivi
+            recognition.lang = 'it-IT';  // Imposta la lingua italiana
+
+            // Quando il riconoscimento vocale fornisce un risultato
+            recognition.onresult = function(event) {
+                let transcript = event.results[event.resultIndex][0].transcript;
+                updateOutput(transcript);  // Mostra il testo riconosciuto
+            };
+
+            // Gestione degli errori
+            recognition.onerror = function(event) {
+                console.error('Errore riconoscimento vocale:', event.error);
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    alert('Accesso al microfono negato. Controlla le impostazioni del browser.');
+                }
+            };
+
+            // Quando il riconoscimento vocale è terminato
+            recognition.onend = function() {
+                isListening = false;  // Segnala che il riconoscimento è finito
+                updateButton();  // Cambia il testo del pulsante
+            };
+        } else {
+            alert("Il riconoscimento vocale non è supportato dal tuo browser.");
+        }
+    }
+
+    // Funzione per attivare o disattivare il riconoscimento vocale
+    function toggleListening() {
+        if (isListening) {
+            recognition.stop();  // Ferma il riconoscimento
+            isListening = false;
+        } else {
+            if (!recognition) {
+                initRecognition();  // Inizializza il riconoscimento se non è stato fatto
+            }
+            recognition.start();  // Inizia il riconoscimento vocale
+            isListening = true;
+        }
+        updateButton();  // Cambia il testo del pulsante in base allo stato
+    }
+
+    // Funzione per aggiornare l'output del riconoscimento vocale
+    function updateOutput(text) {
+        const outputDiv = document.getElementById('output');
+        outputDiv.textContent = text;  // Aggiungi il testo al riquadro
+    }
+
+    // Funzione per aggiornare lo stato del pulsante
+    function updateButton() {
+        const button = document.getElementById('toggleButton');
+        if (isListening) {
+            button.textContent = 'Ferma Riconoscimento';  // Cambia il testo quando il riconoscimento è attivo
+            button.classList.remove('off');
+        } else {
+            button.textContent = 'Attiva Riconoscimento';  // Cambia il testo quando il riconoscimento è spento
+            button.classList.add('off');
+        }
+    }
+
+    // Inizializza il riconoscimento alla prima apertura della pagina
+    window.onload = initRecognition;
+</script>
+</body>
+</html>
