@@ -1,7 +1,7 @@
 # Progetto di User Interface Technologies
 ## Gestione delle Dipendenze
 
-Il repository non include la cartella `node_modules` per mantenere il repository leggero e facilmente gestibile. Tutte le dipendenze sono gestite tramite il file `package.json` e il file di lock (`package-lock.json` o `yarn.lock`).
+Il repository non include la cartella `node_modules` per mantenere il repository leggero e facilmente gestibile. Tutte le dipendenze sono gestite tramite il file `package.json` e il file di lock (`package-lock.json` o `yarn.lock`). La cartella 'speech' contiene i file del modulo Web Speech API che è presente nel codice sorgente di Chromium e può essere recuperato dalla repo di Chromium (da vedere se va bene quello che ho trovato): https://github.com/chromium/chromium/tree/main 
 
 ## Installazione delle Dipendenze
 
