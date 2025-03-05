@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controllo Vocale</title>
+    <style>
+        #log { background: #f4f4f4; padding: 10px; border-radius: 5px; min-height: 100px; }
+    </style>
+</head>
+<body>
+<h1>Comandi Vocali</h1>
+
+<button id="avanti-btn">Avanti</button>
+<button id="indietro-btn">Indietro</button>
+
+<button id="start-btn">Inizia Registrazione</button>
+<button id="stop-btn">Ferma Registrazione</button>
+<button id="start-recognition-btn">Inizia Riconoscimento</button>
+<button id="stop-recognition-btn">Ferma Riconoscimento</button>
+
+<h2>Registro Comandi</h2>
+<div id="log"></div>
+
+<script type="module" src="main.js"></script>
+<script>
+    (function() {
+        const logContainer = document.getElementById("log");
+
+        const oldLog = console.log;
+        console.log = function(message) {
+            oldLog.apply(console, arguments);
+            const p = document.createElement("p");
+            p.textContent = "> " + message;
+            logContainer.appendChild(p);
+        };
+    })();
+</script>
+</body>
+</html>
