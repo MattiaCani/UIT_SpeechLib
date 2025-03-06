@@ -9,7 +9,7 @@ const recognizer = new VoiceRecognizer(recorder.getCommands());
 console.log("main.js caricato correttamente"); // Mostra il messaggio all'avvio del file
 
 if ('AudioContext' in window) {
-    console.log("AudioContext è supportato");
+    console.log("AudioContext è supportato"); //check sul browser per vedere se funge
 } else {
     console.log("AudioContext non è supportato nel tuo browser");
 }
