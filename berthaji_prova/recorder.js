@@ -77,12 +77,11 @@ export class CommandRecorder {
                     console.log("⏹️ Registrazione fermata manualmente.");
 
                     if (this.collectedBuffers.length > 0) {
-                        // Filtra il silenzio iniziale e finale nell'audio catturato
                         const processedBuffer = trimSilence(this.collectedBuffers, 0.01);
                         console.log(`🔍 Audio dopo rimozione silenzio: ${processedBuffer.length} campioni`);
 
                         if (processedBuffer.length > 0) {
-                            this.commands[label] = this.extractMFCC(processedBuffer); // Estrai 13 caratteristiche (APPROSSIMAZIONE)
+                            this.commands[label] = this.extractMFCC(processedBuffer);
                             console.log(`✅ Comando "${label}" registrato con ${processedBuffer.length} campioni`);
                         } else {
                             console.log("⚠️ Nessun audio valido dopo il filtraggio.");
@@ -91,20 +90,30 @@ export class CommandRecorder {
                         console.log("⚠️ Nessun audio registrato.");
                     }
 
-                    // Spegni il microfono rilasciando lo stream
+                    // Spegni il microfono e disconnetti i nodi audio
                     if (this.mediaStream) {
                         this.mediaStream.getTracks().forEach(track => track.stop());
                         console.log("🎤 Microfono disattivato.");
                         this.mediaStream = null;
-                        this.processor.disconnect();
-                        console.log("🎤 Processore audio disconnesso.");
-                        this.processor.disconnect();
-                        gainNode.disconnect();
-                        source.disconnect();  // Disconnetti anche la sorgente
-                        this.processor.port.onmessage = null; // Rimuove l'event listener
                     }
+
+                    if (this.processor) {
+                        this.processor.port.onmessage = null;  // Rimuove il listener dei messaggi
+                        this.processor.disconnect();  // Disconnette il processore
+                        this.processor = null;
+                        console.log("🎤 Processore audio disconnesso e rimosso.");
+                    }
+
+                    if (this.audioContext) {
+                        this.audioContext.close().then(() => {
+                            console.log("🎼 AudioContext chiuso.");
+                            this.audioContext = null;
+                        });
+                    }
+
                     resolve();
                 };
+
             });
 
         } catch (error) {

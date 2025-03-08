@@ -13,17 +13,20 @@ class AudioProcessor extends AudioWorkletProcessor {
     }
 
     process(inputs, outputs, parameters) {
-        console.log("process avviato")
+        if (!this.port || !inputs || inputs.length === 0 || !inputs[0]) {
+            return false; // Interrompe l'elaborazione se non ci sono dati validi
+        }
+
+        console.log("process avviato");
         const input = inputs[0];
 
         if (input && input.length > 0) {
             const buffer = input[0];
 
-            // Controlla se il buffer contiene dati significativi
             const sum = buffer.reduce((acc, val) => acc + Math.abs(val), 0);
             const average = sum / buffer.length;
 
-            if (average > 0.0001) {  // Soglia minima per considerare audio valido
+            if (average > 0.0001) {
                 const serializedBuffer = Array.from(buffer);
 
                 if (this.mode === "record") {
@@ -35,7 +38,8 @@ class AudioProcessor extends AudioWorkletProcessor {
                 }
             }
         }
-        return true;
+
+        return this.port !== null; // Se this.port è null, interrompe l'elaborazione
     }
 }
 
