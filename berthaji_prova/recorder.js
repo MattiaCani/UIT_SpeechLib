@@ -16,10 +16,17 @@ export class CommandRecorder {
         this.mediaStream = null;
         this.processor = null;
         this.collectedBuffers = [];  // Buffer per accumulare l'audio
+        this.currentMode = "record";
     }
 
-    async recordCommand(label) { // Registra qualcosa
+    async recordCommand(label) {
         console.log("🎤 Inizio acquisizione stream audio");
+
+        // Se l'audioContext è null (perché è stato chiuso in precedenza), ricrealo
+        if (!this.audioContext || this.audioContext.state === 'closed') {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log("🎤 AudioContext ricreato");
+        }
 
         if (this.audioContext.state === 'suspended') {
             await this.audioContext.resume();
@@ -28,7 +35,7 @@ export class CommandRecorder {
 
         try {
             console.log("🎤 Accesso al microfono...");
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true }); // Accede al microfono
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const source = this.audioContext.createMediaStreamSource(this.mediaStream);
 
             console.log("🎤 Microfono attivato");
@@ -45,34 +52,41 @@ export class CommandRecorder {
             source.connect(gainNode);
             console.log("🔗 Sorgente audio collegata al GainNode");
 
-            // Collega il GainNode al preprocessore
+            // Collega il GainNode al processore
             gainNode.connect(this.processor);
             console.log("🔗 GainNode collegato al processore");
 
-            // Collega il preprocessore alla destinazione (output audio)
+            // Collega il processore alla destinazione (output audio)
             this.processor.connect(this.audioContext.destination);
             console.log("🔗 Processore collegato alla destinazione");
 
-            // Invia il messaggio per impostare la modalità di registrazione
-            this.processor.port.postMessage({ mode: "record", label });
-
-            console.log(`🎤 Parla ora per registrare il comando: "${label}"`); // Registra quello che dici
+            // Imposta la modalità in base al contesto (qui "record")
+            this.currentMode = "record";
+            this.processor.port.postMessage({ mode: this.currentMode, label }); // messaggio inutile???????
+            console.log(`🎤 Parla ora per registrare il comando: "${label}"`);
 
             this.collectedBuffers = []; // Pulisce i dati precedenti
 
-            return new Promise((resolve) => {
-                this.processor.port.onmessage = (event) => {
+            // Imposta un listener unico per il processore
+            this.processor.port.onmessage = (event) => {
+                // Verifica quale modalità è attiva e gestisci il messaggio di conseguenza
+                if (this.currentMode === "record") {
                     const audioBuffer = event.data.buffer;
-
                     if (audioBuffer && audioBuffer.length > 0) {
-                        //console.log(`🎵 Dati audio ricevuti: ${audioBuffer.length} campioni`);
                         this.collectedBuffers.push(...audioBuffer); // Accumula i dati audio
                     } else {
                         console.log("⚠️ Nessun dato audio ricevuto");
                     }
-                };
+                } else if (this.currentMode === "recognize") {
+                    // Se in modalità "recognize", invia i dati al riconoscitore
+                    // (Puoi avere una logica simile qui per il riconoscimento)
+                    console.log("Ricevuti dati per il riconoscimento:", event.data);
 
-                // Quando la registrazione viene fermata, processa l'audio
+                }
+            };
+
+            // Restituisci una promise per gestire la fine della registrazione
+            return new Promise((resolve) => {
                 this.stopRecording = () => {
                     console.log("⏹️ Registrazione fermata manualmente.");
 
@@ -80,14 +94,19 @@ export class CommandRecorder {
                         const processedBuffer = trimSilence(this.collectedBuffers, 0.01);
                         console.log(`🔍 Audio dopo rimozione silenzio: ${processedBuffer.length} campioni`);
 
-                        if (processedBuffer.length > 0) {
-                            this.commands[label] = this.extractMFCC(processedBuffer);
-                            console.log(`✅ Comando "${label}" registrato con ${processedBuffer.length} campioni`);
-                        } else {
-                            console.log("⚠️ Nessun audio valido dopo il filtraggio.");
-                        }
+                        const wavBlob = encodeWAV(processedBuffer, 44100);
+                        const audioURL = URL.createObjectURL(wavBlob);
+                        document.getElementById("audio-player").src = audioURL;
+                        console.log(`Registrazione completata. WAV pronto su: ${audioURL}`);
                     } else {
                         console.log("⚠️ Nessun audio registrato.");
+                    }
+
+                    if (this.collectedBuffers.length > 0) {
+                        this.commands[label] = this.extractMFCC(this.collectedBuffers);
+                        console.log(`✅ Comando "${label}" registrato con ${this.collectedBuffers.length} campioni`);
+                    } else {
+                        console.log("⚠️ Nessun audio valido dopo il filtraggio.");
                     }
 
                     // Spegni il microfono e disconnetti i nodi audio
@@ -98,8 +117,8 @@ export class CommandRecorder {
                     }
 
                     if (this.processor) {
-                        this.processor.port.onmessage = null;  // Rimuove il listener dei messaggi
-                        this.processor.disconnect();  // Disconnette il processore
+                        // Non cancelliamo il listener; lo lasciamo attivo per eventuali futuri passaggi
+                        this.processor.disconnect();
                         this.processor = null;
                         console.log("🎤 Processore audio disconnesso e rimosso.");
                     }
@@ -111,11 +130,16 @@ export class CommandRecorder {
                         });
                     }
 
+                    console.log("Contenuto di commands:")
+                    for (let key in this.commands) {
+                        if (this.commands.hasOwnProperty(key)) {  // Verifica se la proprietà appartiene all'oggetto
+                            console.log(`${key}: ${this.commands[key]}`);
+                        }
+                    }
+
                     resolve();
                 };
-
             });
-
         } catch (error) {
             console.error("⚠️ Errore durante la registrazione del comando:", error);
         }
@@ -191,4 +215,50 @@ function trimSilence(buffer, threshold) {
     const trimmedBuffer = start < end ? buffer.slice(start, end + 1) : [];
     console.log(`🔪 Buffer audio dopo rimozione silenzio: ${trimmedBuffer.length} campioni`);
     return trimmedBuffer;
+}
+
+/* Funzione per convertire i buffer registrati (l'array this.collectedBuffers)
+in un Blob di tipo WAV */
+function encodeWAV(buffers, sampleRate) {
+    // Se buffers è un array di numeri, lo converto direttamente in un Float32Array.
+    // Nel tuo caso, this.collectedBuffers è stato riempito con dati numerici tramite spread operator.
+    const interleaved = new Float32Array(buffers);
+
+    // Calcola la dimensione necessaria per il file WAV: 44 byte di header + 2 byte per campione PCM a 16 bit
+    const bufferLength = 44 + interleaved.length * 2;
+    const wavBuffer = new ArrayBuffer(bufferLength);
+    const view = new DataView(wavBuffer);
+
+    // Scrivi l'header WAV
+    writeString(view, 0, "RIFF");
+    view.setUint32(4, 36 + interleaved.length * 2, true);
+    writeString(view, 8, "WAVE");
+    writeString(view, 12, "fmt ");
+    view.setUint32(16, 16, true); // Dimensione del formato chunk
+    view.setUint16(20, 1, true);  // Audio format = PCM
+    view.setUint16(22, 1, true);  // Canali = 1 (mono)
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // byteRate = sampleRate * canali * bits/8
+    view.setUint16(32, 2, true); // block align
+    view.setUint16(34, 16, true); // bits per sample
+    writeString(view, 36, "data");
+    view.setUint32(40, interleaved.length * 2, true);
+
+    // Scrive i dati PCM: converte Float32 in Int16
+    let index = 44;
+    for (let i = 0; i < interleaved.length; i++, index += 2) {
+        // Constrain il valore tra -1 e 1
+        let sample = Math.max(-1, Math.min(1, interleaved[i]));
+        // Converte in Int16
+        view.setInt16(index, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+    }
+
+    return new Blob([view], { type: "audio/wav" });
+}
+
+/* Funzione di supporto per scrivere le stringhe nell'header WAV */
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
 }

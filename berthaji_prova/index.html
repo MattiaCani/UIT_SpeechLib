@@ -4,29 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controllo Vocale</title>
+
+    <!-- Importa il font Montserrat da Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+
     <style>
-        #log { background: #f4f4f4; padding: 10px; border-radius: 5px; min-height: 100px; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            font-family: 'Montserrat', sans-serif;
+            color: #333;
+        }
+        #log {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 100px;
+            margin-top: 20px;
+        }
+        #audio-section {
+            background: rgba(148, 182, 224, 0.85);
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 60px;
+            margin-bottom: 20px;
+        }
+        #test-buttons {
+            width: 300px;
+            margin: 10px auto;
+            text-align: center;
+        }
+        #controls {
+            margin: 10px auto;
+            text-align: center;
+        }
+        /* Stile dei bottoni */
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            background: rgba(0, 123, 255, 0.7); /* colore blu con trasparenza */
+            color: #fff;
+            transition: background 0.3s ease, transform 0.2s ease, border 0.3s ease;
+        }
+        button:hover {
+            background: rgba(0, 123, 255, 1); /* colore più pieno al passaggio del mouse */
+            transform: scale(1.05);
+            border: 2px solid #0056b3;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #controls-navbar {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        #controls-navbar button {
+            margin: 5px;
+        }
+
     </style>
 </head>
 <body>
-<h1>Comandi Vocali</h1>
 
-<button id="avanti-btn">Avanti</button>
-<button id="indietro-btn">Indietro</button>
+<nav id="navbar">
+    <button id="apri-registrazione">Apri Registrazione</button>
+    <!-- altri elementi della navbar -->
+</nav>
 
-<button id="start-btn">Inizia Registrazione</button>
-<button id="stop-btn">Ferma Registrazione</button>
-<button id="start-recognition-btn">Inizia Riconoscimento</button>
-<button id="stop-recognition-btn">Ferma Riconoscimento</button>
+<div id="registrazione" style="display: none;">
+    <div id="audio-section">
+        <h2>Audio Registrato</h2>
+        <audio controls id="audio-player">
+            <source src="dina.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+
+
+    <div id="bottoni">
+        <div id="test-buttons">
+            <button id="avanti-btn">Avanti</button>
+            <button id="indietro-btn">Indietro</button>
+        </div>
+
+        <div id="controls">
+            <button id="start-btn">Inizia Registrazione</button>
+            <button id="stop-btn">Ferma Registrazione</button>
+            <button id="start-recognition-btn">Inizia Riconoscimento</button>
+            <button id="stop-recognition-btn">Ferma Riconoscimento</button>
+        </div>
+    </div>
+</div>
 
 <h2>Registro Comandi</h2>
 <div id="log"></div>
 
 <script type="module" src="main.js"></script>
 <script>
+    // Reindirizza console.log al log della pagina
     (function() {
         const logContainer = document.getElementById("log");
-
         const oldLog = console.log;
         console.log = function(message) {
             oldLog.apply(console, arguments);
@@ -35,7 +123,26 @@
             logContainer.appendChild(p);
         };
     })();
+
+    // Aggiungi evento click per i bottoni "Avanti" e "Indietro"
+    document.getElementById("avanti-btn").addEventListener("click", function() {
+        alert("Avanti cliccato!");
+    });
+    document.getElementById("indietro-btn").addEventListener("click", function() {
+        alert("Indietro cliccato!");
+    });
+
+    document.getElementById('apri-registrazione').addEventListener('click', function() {
+        var registrazione = document.getElementById('registrazione');
+        if (registrazione.style.display === 'none') {
+            registrazione.style.display = 'block';
+            this.textContent = 'Chiudi Registrazione';
+        } else {
+            registrazione.style.display = 'none';
+            this.textContent = 'Apri Registrazione';
+        }
+    });
 </script>
-<!-- Carica Meyda tramite un altro CDN -->
+<!-- Carica Meyda tramite un altro CDN se necessario -->
 </body>
 </html>

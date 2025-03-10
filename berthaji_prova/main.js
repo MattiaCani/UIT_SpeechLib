@@ -28,11 +28,14 @@ document.getElementById('start-btn').addEventListener('click', async () => {
     await recorder.recordCommand(currentCommand);
     console.log(`✅ Comando "${currentCommand}" registrato`);
 
+    // passa i comandi registrati al recognizer
+    recognizer.updateCommands(recorder.getCommands());
+
     // Dopo che un comando è stato registrato, alterniamo il comando successivo
     currentCommand = currentCommand === "avanti" ? "indietro" : "avanti";  // Alterna tra "avanti" e "indietro"
 
     // Cambia il testo del pulsante per il prossimo comando
-    button.textContent = `Registra comando "${currentCommand}"`;
+    document.getElementById('start-btn').textContent = `Registra comando "${currentCommand}"`;
 });
 
 // Ferma la registrazione
@@ -42,9 +45,9 @@ document.getElementById('stop-btn').addEventListener('click', () => {
 });
 
 // Inizia il riconoscimento vocale
-document.getElementById('start-recognition-btn').addEventListener('click', () => {
+document.getElementById('start-recognition-btn').addEventListener('click', async () => {
     console.log('🎤 Inizio riconoscimento vocale');
-    recognizer.startListening();
+    await recognizer.startListening(currentCommand);
 });
 
 // Ferma il riconoscimento vocale
